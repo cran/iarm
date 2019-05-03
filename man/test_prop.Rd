@@ -7,12 +7,13 @@
 test_prop(object)
 }
 \arguments{
-\item{object}{An object of class eRm, a fitted Rasch model or partial
-credit model using  the functions RM or PCM in package eRm.}
+\item{object}{An object of class "Rm", a fitted Rasch model or partial
+credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
+ a fitted partial credit model using the function pcmodel in package psychotools.}
 }
 \value{
 a list containing:
-\item{Separation reliability}{the person separation reliability as calculated in package eRm}
+\item{Separation reliability}{the person separation reliability as calculated in package eRm for objects of class "Rm".}
 \item{Test difficulty}{person value with an expected score equal to half of the maximum score.}
 \item{Test target}{person value where test information is maximized.}
 \item{Test information}{maximal value of the test information}

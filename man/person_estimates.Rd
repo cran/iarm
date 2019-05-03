@@ -4,7 +4,7 @@
 \alias{person_estimates}
 \title{Person Estimates with MLE and WLE}
 \usage{
-person_estimates(object, properties = F)
+person_estimates(object, properties = F, allperson = F)
 }
 \arguments{
 \item{object}{An object of class "Rm", a fitted Rasch model or partial
@@ -12,6 +12,8 @@ credit model using  the functions RM or PCM in package eRm, or an object of clas
  a fitted partial credit model using the function pcmodel in package psychotools.}
 
 \item{properties}{If TRUE additional properties of the estimates are given (see below).}
+
+\item{allperson}{If TRUE person estimates (MLE and WLE) for all persons in the data set are delivered.}
 }
 \value{
 If properties = False a matrix containing:
