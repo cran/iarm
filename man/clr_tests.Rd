@@ -9,7 +9,7 @@ clr_tests(dat.items, dat.exo = NULL, model = c("RM", "PCM"))
 \arguments{
 \item{dat.items}{A data frame with the responses to the items.}
 
-\item{dat.exo}{A data frame consisting of exogenous factor variables.}
+\item{dat.exo}{A single factor or a data frame consisting of one or more exogenous factor variables.}
 
 \item{model}{If model="RM" a Rasch model will be fitted,
 if model="PCM" a partial credit model for polytomous items is used.}

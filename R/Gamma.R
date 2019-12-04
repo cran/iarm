@@ -56,6 +56,7 @@ partgam <- function(x, y, z, conf.level = 0.95){
 #' an exogenous variable, controlling for the scale score. Partial Gamma coefficients are used as test statistics.
 #' @param dat.items A data frame with the responses to the items.
 #' @param dat.exo  A single grouping factor or a data frame consisting of several exogenous factor variables.
+#' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
 #' @return data frame with Gamma coefficients, standard errors, p values and confidence limits for every
 #' pair of an item and an exogenous variable.
 #' @importFrom stats quantile
@@ -67,13 +68,14 @@ partgam <- function(x, y, z, conf.level = 0.95){
 #' @references Bjorner, J., Kreiner, S., Ware, J., Damsgaard, M. and Bech, P. Differential item
 #' functioning in the Danish translation of the SF-36. \emph{Journal of Clinical Epidemiology},
 #' 51 (11), 1998, pp. 1189-1202.
-partgam_DIF <- function(dat.items,dat.exo){
+partgam_DIF <- function(dat.items, dat.exo, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
   if (!is.data.frame(dat.exo)) {
     gname <- deparse(substitute(dat.exo))
     dat.exo <- data.frame(dat.exo)
     names(dat.exo) <- gname
   }
   if (is.null(names(dat.items))) names(dat.items) <- paste("I",1:dim(dat.items)[2],sep="")
+  padj <- match.arg(p.adj)
   score <- apply(dat.items,1,sum,na.rm=T)
   fz <- cut(score,unique(quantile(score,0:10/10)),include.lowest=T)
   k <- dim(dat.items)[2]
@@ -83,13 +85,16 @@ partgam_DIF <- function(dat.items,dat.exo){
   for (i in 1:k){
     for (j in 1:l){
       mm <- partgam(dat.items[, i], dat.exo[, j], fz)
-      pvalue <- round(ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2]))), digits = 4)
+      pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
+      pvalue <- p.adjust(pvalue,method=padj, n= l*k)
       symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
       result[z,] <- c(names(dat.items)[i],names(dat.exo)[j],mm[dim(mm)[1],1:2],pvalue,symp,mm[dim(mm)[1],3:4])
       z <- z + 1
     }
   }
-  result
+  names(result)[5] <- paste("p.adj",padj,sep=".")
+  print(cbind(result[,1:2], round(result[,3:5], digits=4), sig=result[,6],round(result[,7:8],digits=4)))
+  invisible(result)
 }
 
 #' Partial Gamma to detect Local Dependence (LD)
@@ -99,6 +104,7 @@ partgam_DIF <- function(dat.items,dat.exo){
 #' Partial Gamma coefficients between pairs of items controlled for the rest score
 #' can be used to assess this requirement.
 #' @param dat.items A data frame with the responses to the items.
+#' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
 #' @return data frame with Gamma coefficients, standard errors, p values and confidence limits for every
 #' pair of items.
 #' @importFrom stats quantile
@@ -109,7 +115,8 @@ partgam_DIF <- function(dat.items,dat.exo){
 #' partgam_LD(amts[,4:13])
 #' @references Christensen, K. B. , Kreiner, S. & Mesbah, M. (Eds.)
 #' \emph{Rasch Models in Health}. Iste and Wiley (2013), pp. 133 - 135.
-partgam_LD <- function(dat.items){
+partgam_LD <- function(dat.items, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
+  padj <- match.arg(p.adj)
   score <- apply(dat.items,1,sum,na.rm=T)
   ok <- complete.cases(dat.items)
   k <- dim(dat.items)[2]
@@ -120,13 +127,16 @@ partgam_LD <- function(dat.items){
       rest <- score[ok] - dat.items[ok,j]
       fac.z <- cut(rest,unique(quantile(rest,0:10/10)),include.lowest=T)
       mm <- partgam(dat.items[ok,i], dat.items[ok,j],fac.z)
-      pvalue <- round(ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2]))), digits = 4)
+      pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
+      pvalue <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
       symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
       result[z,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,symp,mm[dim(mm)[1],3:4])
       z <- z + 1
     }
   }
-  result
+  names(result)[5] <- paste("p.adj",padj,sep=".")
+  print(cbind(result[,1:2],round(result[,3:5],digits=4),sig=result[,6],round(result[,7:8],digits=4)))
+  invisible(result)
 }
 
 

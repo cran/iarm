@@ -4,12 +4,15 @@
 \alias{item_restscore}
 \title{Item Restscore Association}
 \usage{
-item_restscore(object)
+item_restscore(object, p.adj = c("BH", "holm", "hochberg", "hommel",
+  "bonferroni", "BY", "none"))
 }
 \arguments{
 \item{object}{An object of class "Rm", a fitted Rasch model or partial
 credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
  a fitted partial credit model using the function pcmodel in package psychotools.}
+
+\item{p.adj}{Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.}
 }
 \value{
 a matrix containing:

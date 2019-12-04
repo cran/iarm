@@ -2,13 +2,13 @@
 #'
 #' Computes Person estimates with maximum likelihood estimation (MLE) and  weighted likelihood estimation (WLE) for raw scores 0 to m.
 #' @param  object An object of class "Rm", a fitted Rasch model or partial
-#' credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
-#'  a fitted partial credit model using the function pcmodel in package psychotools.
+#' credit model using  the functions RM or PCM in package eRm, or an object of class "raschmodel" or "pcmodel",
+#'  a fitted Rasch model or partial credit model using the functions raschmodel or pcmodel in package psychotools.
 #' @param  properties If TRUE additional properties of the estimates are given (see below).
 #' @param allperson If TRUE person estimates (MLE and WLE) for all persons in the data set are delivered.
 #' @import eRm
 #' @importFrom PP PP_gpcm
-#' @importFrom psychotools personpar
+#' @importFrom psychotools personpar itempar
 #' @importFrom stats coef uniroot na.omit
 #' @export
 #' @return If properties = False a matrix containing:
@@ -31,14 +31,16 @@
 #' rm.mod <- RM(amts[,4:13])
 #' person_estimates(rm.mod)
 person_estimates <- function(object, properties = F, allperson = F){
-    if (!any("Rm"%in%class(object),class(object) =="pcmodel")) stop("object must be of class Rm or pcmodel!")
+    if (!any("Rm"%in%class(object),class(object)%in%c("raschmodel","pcmodel"))) stop("object must be of class Rm, raschmodel or pcmodel!")
     if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
-    if (object$model == "pcmodel") {X <- object$data
+    if(class(object)[1]=="raschmodel") object$model <- "raschmodel"
+    if (object$model%in%c("raschmodel","pcmodel")) {X <- object$data
     } else {X <- object$X
     }
-    if (object$model == "RM") {
+    if (object$model%in%c("RM","raschmodel")) {
       k <- dim(X)[2]
-      coeff <- (-1)*coef(object)
+      if (object$model == "RM") coeff <- (-1)*coef(object)
+        else coeff <- itempar(object)
       m <- k
       respm <- rbind(rep(0, k), lower.tri(matrix(1, k, k)) + diag(k))
     } else {
@@ -67,14 +69,18 @@ person_estimates <- function(object, properties = F, allperson = F){
       if (properties == F) {
         mm
       } else {
-        koeff <- lapply(as.list(as.data.frame(t(coeff))), function(x) cumsum(na.omit(x)))
+        if (object$model%in%c("RM","raschmodel")){
+          koeff <- as.list(coeff)
+        } else {
+          koeff <- lapply(as.list(as.data.frame(t(coeff))), function(x) cumsum(na.omit(x)))
+        }
         gr <- elementary_symmetric_functions(koeff)[[1]]
         s.theta <- function(r){
           function(x){
             ((exp(x*(0:m))*gr)/as.vector(exp(x*(0:m))%*%gr))%*%(0:m) - r
           }
         }
-        if (object$model == "pcmodel") mm[1, 2] <- NA else  mm[1, 2] <- person.parameter(object)$pred.list[[1]]$y[1]
+        if (object$model%in%c("pcmodel","raschmodel")) mm[1, 2] <- NA else  mm[1, 2] <- person.parameter(object)$pred.list[[1]]$y[1]
         try(mm[1, 2] <- uniroot(s.theta(0.25), c(-10, 10))$root)
         mm[m + 1, 2] <- uniroot(s.theta(m - 0.25), c(-6, 6))$root
         rvec = 0:m
@@ -88,6 +94,7 @@ person_estimates <- function(object, properties = F, allperson = F){
         }
         result <- list(cbind(mm[, 1:2],t(apply(mm[, c(1, 2)], 1, pers_prop, persons = mm[, 2]))),
                      cbind(mm[, c(1,3)], t(apply(mm[, c(1, 3)], 1, pers_prop, persons = mm[, 3]))))
+        result
       }
   }
 }

@@ -55,7 +55,7 @@ item_target <- function(obj){
 #' @author Marianne Mueller
 #' @references Andersen, E.B. (1973). A goodness of fit test for the Rasch model. \emph{Psychometrika}, 38, 123-140.
 #' @param dat.items A data frame with the responses to the items.
-#' @param dat.exo  A data frame consisting of exogenous factor variables.
+#' @param dat.exo  A single factor or a data frame consisting of one or more exogenous factor variables.
 #' @param model If model="RM" a Rasch model will be fitted,
 #' if model="PCM" a partial credit model for polytomous items is used.
 #' @return matrix with test statistics, df and p values.
@@ -77,7 +77,11 @@ clr_tests <- function(dat.items, dat.exo=NULL, model = c("RM","PCM")) {
       mm <- round(t(c(clr=lr0$LR,df=lr0$df,pvalue=lr0$pvalue)),digits=3)
       row.names(mm)[1]="overall"
     } else {
-      #dat.exo <- data.frame(dat.exo)
+      if (!is.data.frame(dat.exo)) {
+        gname <- deparse(substitute(dat.exo))
+        dat.exo <- data.frame(dat.exo)
+        names(dat.exo) <- gname
+      }
       ok1 <-  complete.cases(cbind(dat.items, dat.exo))
       mod1 <- RM(dat.items[ok1,])
       lrexo <- function(x){
@@ -96,6 +100,11 @@ clr_tests <- function(dat.items, dat.exo=NULL, model = c("RM","PCM")) {
       mm <- round(t(c(clr=clr0,df=mod0$df)),digits=3)
       row.names(mm)[1]="overall"
     } else {
+      if (!is.data.frame(dat.exo)) {
+        gname <- deparse(substitute(dat.exo))
+        dat.exo <- data.frame(dat.exo)
+        names(dat.exo) <- gname
+      }
       ok1 <-  complete.cases(cbind(dat.items, dat.exo))
       clrhomo <- function(exo, data){
         sum(sapply(split(data, exo, drop = TRUE),function(x){pcmodel(x,hessian=F)$loglik}))
@@ -116,4 +125,3 @@ clr_tests <- function(dat.items, dat.exo=NULL, model = c("RM","PCM")) {
   cat("\n")
   mm
 }
-

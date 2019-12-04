@@ -3,7 +3,7 @@ expvar <- function(data, coeff){
   rv[rv == 0] <- NA
   k <- dim(data)[2]
   n <- dim(data)[1]
-  mi <- sapply(coeff, length)
+  mi <- apply(data, 2, max, na.rm = TRUE)
   m <- sum(mi)
   Er <- matrix(rep(0, m*k), ncol = k)
   Varx <- matrix(rep(0, m*k), ncol = k)
@@ -56,18 +56,33 @@ item_obsexp <- function(object){
   if (!any("Rm"%in%class(object),class(object) =="pcmodel")) stop("object must be of class Rm or pcmodel!")
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
   if (object$model == "RM") {
+    if (sum(is.na(object$X)) > 0){
+      message("Model was refitted with only complete cases")
+      dat.items <- na.omit(object$X)
+      object <- RM(dat.items)
+    }
     X <- object$X
     k <- dim(X)[2]
     coeff <- (-1)*coef(object)
     mi <- rep(1, k)
   } else {
     if (object$model == "PCM"){
+      if (sum(is.na(object$X)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$X)
+        object <- PCM(dat.items)
+      }
       X <- object$X
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
       thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
       coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
     } else {
+      if (sum(is.na(object$data)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$data)
+        object <- pcmodel(dat.items)
+      }
       X <- object$data
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
@@ -95,7 +110,7 @@ item_obsexp <- function(object){
   cat("Score group 2:","\n")
   print(result[[2]])
   cat("\n")
-  invisible(return)
+  invisible(result)
 }
 
 
@@ -108,12 +123,13 @@ item_obsexp <- function(object){
 #' credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
 #'  a fitted partial credit model using the function pcmodel in package psychotools.
 #' @param se If TRUE the standard errors will be included.
+#' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
 #' @details The fit statistics and their standard errors are calculated as described in Christensen et al.
 #' P values are are based on the normal distribution of the standardized fit statistics.
 #' @author Marianne Mueller
 #' @import eRm
 #' @importFrom psychotools pcmodel threshpar
-#' @importFrom stats coef pnorm na.exclude
+#' @importFrom stats coef pnorm na.exclude p.adjust
 #' @export
 #' @references Christensen, K. B. , Kreiner, S. & Mesbah, M. (Eds.)
 #' \emph{Rasch Models in Health}. Iste and Wiley (2013), pp. 86 - 90.
@@ -130,10 +146,16 @@ item_obsexp <- function(object){
 #' @examples
 #' rm.mod <- RM(amts[,4:13])
 #' out_infit(rm.mod)
-out_infit <- function(object,se=TRUE){
+out_infit <- function(object, se=TRUE, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
   if (!any("Rm"%in%class(object),class(object) =="pcmodel")) stop("object must be of class Rm or pcmodel!")
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
+  padj <- match.arg(p.adj)
   if (object$model=="RM") {
+    if (sum(is.na(object$X)) > 0){
+      message("Model was refitted with only complete cases")
+      dat.items <- na.omit(object$X)
+      object <- RM(dat.items)
+    }
     X <- object$X
     rv <- rowSums(X, na.rm = TRUE)
     k <- dim(X)[2]
@@ -141,6 +163,11 @@ out_infit <- function(object,se=TRUE){
     mi <- rep(1,k)
   } else {
     if (object$model == "PCM") {
+      if (sum(is.na(object$X)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$X)
+        object <- PCM(dat.items)
+      }
       X <- object$X
       rv <- rowSums(X, na.rm = TRUE)
       k <- dim(X)[2]
@@ -148,6 +175,11 @@ out_infit <- function(object,se=TRUE){
       thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
       koeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
     } else {
+      if (sum(is.na(object$data)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$data)
+        object <- pcmodel(dat.items)
+      }
       X <- object$data
       rv <- rowSums(X, na.rm = TRUE)
       k <- dim(X)[2]
@@ -190,7 +222,7 @@ out_infit <- function(object,se=TRUE){
     Outfit.se <- sqrt(colSums((nir/colSums(nir)^2) * VarZ))
     fit <- cbind(Outfit,Outfit.se)
     pwert <- function(x){ifelse(x[, 1] > 1, 2*(1 - pnorm((x[, 1] - 1)/x[, 2])), 2*(pnorm((x[, 1] - 1)/x[, 2])))}
-    out.pwert <- pwert(fit)
+    out.pwert <- p.adjust(pwert(fit),method=padj, n= 2*k)
   }
   Wri <- VarX.R / matrix(rep(colSums(nir * VarX.R), m-1), ncol = k, byrow = T)
   Wvi <- Wri[rvstrich, ]
@@ -199,8 +231,10 @@ out_infit <- function(object,se=TRUE){
     Infit.se <- sqrt(colSums(nir * Wri^2 * VarZ,na.rm = T))
     names(Infit)=colnames(X)
     fit <- cbind(Infit,Infit.se)
-    in.pwert <- pwert(fit)
-    result <- list(Outfit=Outfit, Outfit.se=Outfit.se, out.pvalue=out.pwert, Infit=Infit, Infit.se=Infit.se, in.pvalue=in.pwert)
+    in.pwert <- p.adjust(pwert(fit),method=padj, n=2*k)
+    result <- list(Outfit=Outfit, Outfit.se=Outfit.se, out.pvalue=out.pwert, Infit=Infit, Infit.se=Infit.se, in.pvalue=in.pwert,padj)
+    names(result)[3] <- paste("pvalue",padj,sep=".")
+    names(result)[6] <- paste("pvalue",padj,sep=".")
   } else {
     result <- list(Outfit=Outfit, Infit=Infit)
   }
@@ -223,14 +257,14 @@ print.outfit <- function(x, ...){
     cat("\n")
     print(tab2)
     cat("\n")
+    cat("P value adjustment:", x[[7]])
   }
 }
 
 # #' Computes Outfit and Infit Statistics for a Bootstrap Sample
-# #' Model fit with mRm or pcmodel (much faster then eRm)
-# #' @importFrom mRm mrm
+# #' Model fit with raschmodel or pcmodel (much faster then eRm)
 # #' @importFrom psychotools elementary_symmetric_functions
-# #' @importFrom psychotools threshpar
+# #' @importFrom psychotools raschmodel itempar pcmodel threshpar
 # #' @param data A dataframe with the responses to the items
 # #' @param model If model="RM" a Rasch model will be fitted,
 # #' if model="PCM" or "pcmodel" a partial credit model for polytomous items is used.
@@ -240,7 +274,7 @@ outin_boot <- function(data, model= c("RM","PCM","pcmodel")){
   k <- dim(data)[2]  # Anzahl Items
   mode <- match.arg(model)
   if (mode == "RM") {
-    koeff <- (-1)*mrm(data,1)$beta
+    koeff <- itempar(raschmodel(data, hessian = F))
     mi <- rep(1,k)
   }
   else {
@@ -289,34 +323,51 @@ outin_boot <- function(data, model= c("RM","PCM","pcmodel")){
 #' Computes Bootstrapping P Values for Outfit and Infit Statistics
 #'@param object  an object of class "Rm" (output of RM or PCM) or class "pcmodel"
 #'@param B Number of replications.
+#'@param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
 #'@export
 #'@import eRm
-#'@importFrom mRm mrm
-#'@importFrom psychotools threshpar
+#'@importFrom psychotools raschmodel threshpar
+#'@importFrom stats p.adjust
 #'@importFrom utils capture.output
 #'@return object of class bootfit with outfit and infit statistics and corresponding p values.
-boot_fit <- function(object,B){
-  Fr1 <- out_infit(object)
-  Fr0 <- c((Fr1$Outfit-1)/Fr1$Outfit.se, (Fr1$Infit-1)/Fr1$Infit.se)
+boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
+  padj <- match.arg(p.adj)
   if (object$model=="RM") {
+    if (sum(is.na(object$X)) > 0){
+      message("Model was refitted with only complete cases")
+      dat.items <- na.omit(object$X)
+      object <- RM(dat.items)
+    }
     X <- object$X
     k <- dim(X)[2]
     koeff <- (-1)*coef(object)
   } else {
     if (object$model == "PCM") {
+      if (sum(is.na(object$X)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$X)
+        object <- PCM(dat.items)
+      }
       X <- object$X
       k <- dim(X)[2]
       koeff <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
       koeff2 <- vector("list",k)
       for (i in 1:k) koeff2[[i]] <- koeff[i,]
     } else {
+      if (sum(is.na(object$data)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$data)
+        object <- pcmodel(dat.items)
+      }
       X <- object$data
       k <- dim(X)[2]
       koeff <-  coef(threshpar(object),type="matrix")
       koeff2 <- threshpar(object)
     }
   }
+  Fr1 <- out_infit(object)
+  Fr0 <- c((Fr1$Outfit-1)/Fr1$Outfit.se, (Fr1$Infit-1)/Fr1$Infit.se)
   invisible(capture.output(persons <- PP_gpcm(X,t(koeff),slopes=rep(1,k),type="wle")[[1]][[1]][,1]))
   outin <- matrix(rep(NA,2*k*B),ncol=2*k)
   condp <- function(x,x0){
@@ -345,7 +396,10 @@ boot_fit <- function(object,B){
   }
   cat("\n \n")
   pvalue <- apply(rbind(outin,Fr0),2,function(x){condp(x[-(B+1)],x[B+1])})
+  pvalue <- p.adjust(pvalue,method=padj, n= 2*k)
   result <- cbind(Outfit=Fr1[[1]],pvalue=pvalue[1:k], Infit=Fr1[[4]],pvalue=pvalue[(k+1):(2*k)])
+  result <- list(result,padj)
+  names(result)[2] <- "adjust"
   class(result) <- "bootfit"
   result
 }
@@ -356,12 +410,12 @@ boot_fit <- function(object,B){
 #' @export
 print.bootfit <- function(x,...){
   symp <- function(x){symnum(x,cutpoints=c(0,0.001,0.01,0.05,0.1,1),symbols=c("***   "," **  "," *   "," .   ","    "))}
-  tab2 <- noquote(cbind(Outfit=round(x[,1],digits=3), pvalue=round(x[,2],digits=3),sig=symp(x[,2]),
-                        Infit=round(x[,3],digits=3),pvalue=round(x[,4],digits=3) ,sig=symp(x[,4])))
+  tab2 <- noquote(cbind(Outfit=round(x[[1]][,1],digits=3), pvalue=round(x[[1]][,2],digits=3),sig=symp(x[[1]][,2]),
+                        Infit=round(x[[1]][,3],digits=3),pvalue=round(x [[1]][,4],digits=3) ,sig=symp(x[[1]][,4])))
   cat("\n")
   print(tab2)
   cat("\n")
-
+  cat("P value adjustment:", x[[2]])
 }
 
 
@@ -424,8 +478,10 @@ pscore_poly  <- function(i,x,r,coeff){
 #' @param object An object of class "Rm", a fitted Rasch model or partial
 #' credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
 #'  a fitted partial credit model using the function pcmodel in package psychotools.
+#' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
 #' @import eRm
 #' @importFrom vcdExtra GKgamma
+#' @importFrom stats p.adjust
 #' @export
 #' @return a matrix containing:
 #' \item{observed}{observed gamma coefficients}
@@ -439,10 +495,16 @@ pscore_poly  <- function(i,x,r,coeff){
 #' @examples
 #' rm.mod <- RM(amts[,4:13])
 #' item_restscore(rm.mod)
-item_restscore <- function(object){
+item_restscore <- function(object, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
   if (!any("Rm"%in%class(object),class(object) =="pcmodel")) stop("object must be of class Rm or pcmodel!")
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
+  padj <- match.arg(p.adj)
   if (object$model=="RM") {
+    if (sum(is.na(object$X)) > 0){
+      message("Model was refitted with only complete cases")
+      dat.items <- na.omit(object$X)
+      object <- RM(dat.items)
+    }
     X <- object$X
     k <- dim(X)[2]
     n <- dim(X)[1]
@@ -450,6 +512,11 @@ item_restscore <- function(object){
     mi <- rep(1,k)
   } else {
     if (object$model=="PCM") {
+      if (sum(is.na(object$X)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$X)
+        object <- PCM(dat.items)
+      }
       X <- object$X
       k <- dim(X)[2]
       n <- dim(X)[1]
@@ -457,6 +524,11 @@ item_restscore <- function(object){
       thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
       coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
     } else {
+      if (sum(is.na(object$data)) > 0){
+        message("Model was refitted with only complete cases")
+        dat.items <- na.omit(object$data)
+        object <- pcmodel(dat.items)
+      }
       X <- object$data
       k <- dim(X)[2]
       n <- dim(X)[1]
@@ -483,10 +555,12 @@ item_restscore <- function(object){
     npmat[[i]] <- nmat*pmat
   }
   expected <- sapply(npmat, function(x){GKgamma(x)[[1]]})
-  pvalue <- round(ifelse((mm[, 1] - expected) > 0, 2*(1 - pnorm((mm[, 1] - expected)/mm[, 2])), 2*(pnorm((mm[, 1] - expected)/mm[, 2]))), digits = 4)
-  mm <- cbind(observed = mm[, 1], expected, se = mm[, 2], pvalue)
+  pvalue <- ifelse((mm[, 1] - expected) > 0, 2*(1 - pnorm((mm[, 1] - expected)/mm[, 2])), 2*(pnorm((mm[, 1] - expected)/mm[, 2])))
+
+  mm <- cbind(observed = mm[, 1], expected, se = mm[, 2], round(p.adjust(pvalue,method=padj, n=k),digits=4))
   symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols=c("*** ", "** ", "* ", "." , " "))
   mm <- noquote(cbind(format(mm, digits = 3), sig = symp))
+  colnames(mm)[4] <- paste("pvalue",padj,sep=".")
   cat("\n")
   mm
 }

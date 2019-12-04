@@ -1,8 +1,0 @@
-# News for package 'iarm'
-
-## Changes in Version 0.2.0
-
-* bug fix for input arguments of partgam
-* added functions partgam_LD and partgam_DIF
-* person_estimates accepts now items with different number of levels, calculates person measures for all persons in the data set.
-* test_prop accepts pcmodel object as input.

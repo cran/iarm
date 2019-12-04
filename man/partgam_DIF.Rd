@@ -4,12 +4,15 @@
 \alias{partgam_DIF}
 \title{Partial Gamma to detect Differential Item Functioning (DIF)}
 \usage{
-partgam_DIF(dat.items, dat.exo)
+partgam_DIF(dat.items, dat.exo, p.adj = c("BH", "holm", "hochberg",
+  "hommel", "bonferroni", "BY", "none"))
 }
 \arguments{
 \item{dat.items}{A data frame with the responses to the items.}
 
 \item{dat.exo}{A single grouping factor or a data frame consisting of several exogenous factor variables.}
+
+\item{p.adj}{Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.}
 }
 \value{
 data frame with Gamma coefficients, standard errors, p values and confidence limits for every

@@ -8,8 +8,8 @@ person_estimates(object, properties = F, allperson = F)
 }
 \arguments{
 \item{object}{An object of class "Rm", a fitted Rasch model or partial
-credit model using  the functions RM or PCM in package eRm, or an object of class "pcmodel",
- a fitted partial credit model using the function pcmodel in package psychotools.}
+credit model using  the functions RM or PCM in package eRm, or an object of class "raschmodel" or "pcmodel",
+ a fitted Rasch model or partial credit model using the functions raschmodel or pcmodel in package psychotools.}
 
 \item{properties}{If TRUE additional properties of the estimates are given (see below).}
 

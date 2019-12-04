@@ -4,10 +4,13 @@
 \alias{partgam_LD}
 \title{Partial Gamma to detect Local Dependence (LD)}
 \usage{
-partgam_LD(dat.items)
+partgam_LD(dat.items, p.adj = c("BH", "holm", "hochberg", "hommel",
+  "bonferroni", "BY", "none"))
 }
 \arguments{
 \item{dat.items}{A data frame with the responses to the items.}
+
+\item{p.adj}{Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.}
 }
 \value{
 data frame with Gamma coefficients, standard errors, p values and confidence limits for every
