@@ -57,7 +57,7 @@ partgam <- function(x, y, z, conf.level = 0.95){
 #' @param dat.items A data frame with the responses to the items.
 #' @param dat.exo  A single grouping factor or a data frame consisting of several exogenous factor variables.
 #' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
-#' @return data frame with Gamma coefficients, standard errors, p values and confidence limits for every
+#' @return data frame with Gamma coefficients, standard errors, p values, adjusted p values if an adjustment method has be chosen,  and confidence limits for every
 #' pair of an item and an exogenous variable.
 #' @importFrom stats quantile
 #' @seealso  {\code{\link{partgam_LD}}}
@@ -80,20 +80,23 @@ partgam_DIF <- function(dat.items, dat.exo, p.adj= c("BH","holm", "hochberg", "h
   fz <- cut(score,unique(quantile(score,0:10/10)),include.lowest=T)
   k <- dim(dat.items)[2]
   l <- dim(dat.exo)[2]
-  result <- data.frame(Item=character(), Var=character(), gamma=double(),se=double(),pvalue=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
+  result <- data.frame(Item=character(), Var=character(), gamma=double(),se=double(),pvalue=double(),pkorr=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
   z <- 1
   for (i in 1:k){
     for (j in 1:l){
       mm <- partgam(dat.items[, i], dat.exo[, j], fz)
       pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
-      pvalue <- p.adjust(pvalue,method=padj, n= l*k)
-      symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
-      result[z,] <- c(names(dat.items)[i],names(dat.exo)[j],mm[dim(mm)[1],1:2],pvalue,symp,mm[dim(mm)[1],3:4])
+      pkorr <- p.adjust(pvalue,method=padj, n= l*k)
+      symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
+      result[z,] <- c(names(dat.items)[i],names(dat.exo)[j],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
       z <- z + 1
     }
   }
-  names(result)[5] <- paste("p.adj",padj,sep=".")
-  print(cbind(result[,1:2], round(result[,3:5], digits=4), sig=result[,6],round(result[,7:8],digits=4)))
+  names(result)[6] <- paste("padj",padj,sep=".")
+  if (padj!="none")
+    print(cbind(result[,1:2], round(result[,3:6], digits=4), sig=result[,7],round(result[,8:9],digits=4)))
+  else
+    print(cbind(result[,1:2], round(result[,3:5], digits=4), sig=result[,7],round(result[,8:9],digits=4)))
   invisible(result)
 }
 
@@ -102,10 +105,12 @@ partgam_DIF <- function(dat.items, dat.exo, p.adj= c("BH","holm", "hochberg", "h
 #' Rasch models assume locally independent items. There should be no substantial correlation left between two items
 #' once the underlying factor has been taken into account.
 #' Partial Gamma coefficients between pairs of items controlled for the rest score
-#' can be used to assess this requirement.
+#' can be used to assess this requirement. The rest score is calculated as the score without the second item.
 #' @param dat.items A data frame with the responses to the items.
 #' @param p.adj Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.
-#' @return data frame with Gamma coefficients, standard errors, p values and confidence limits for every
+#' @details Because it matters which of the two items of a pair is subtracted from the total score to give the rest score, calculations are done for each pair in both ways. Results are
+#' stored in two different data frames.
+#' @return list of two data frames with Gamma coefficients, standard errors, p values, adjusted p values if an adjustment method has be chosen, and confidence limits for every
 #' pair of items.
 #' @importFrom stats quantile
 #' @export
@@ -120,7 +125,8 @@ partgam_LD <- function(dat.items, p.adj= c("BH","holm", "hochberg", "hommel", "b
   score <- apply(dat.items,1,sum,na.rm=T)
   ok <- complete.cases(dat.items)
   k <- dim(dat.items)[2]
-  result <- data.frame(Item1=character(),Item2=character(), gamma=double(),se=double(),pvalue=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
+  result <- data.frame(Item1=character(),Item2=character(), gamma=double(),se=double(),pvalue=double(),pkorr=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
+  result <- list(result,result)
   z <- 1
   for (i in 1:(k-1)){
     for (j in (i+1):k){
@@ -128,14 +134,30 @@ partgam_LD <- function(dat.items, p.adj= c("BH","holm", "hochberg", "hommel", "b
       fac.z <- cut(rest,unique(quantile(rest,0:10/10)),include.lowest=T)
       mm <- partgam(dat.items[ok,i], dat.items[ok,j],fac.z)
       pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
-      pvalue <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
-      symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
-      result[z,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,symp,mm[dim(mm)[1],3:4])
+      pkorr <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
+      symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
+      result[[1]][z,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
+      rest <- score[ok] - dat.items[ok,i]
+      fac.z <- cut(rest,unique(quantile(rest,0:10/10)),include.lowest=T)
+      mm <- partgam(dat.items[ok,i], dat.items[ok,j],fac.z)
+      pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
+      pkorr <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
+      symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
+      result[[2]][z,] <- c(names(dat.items)[j],names(dat.items)[i],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
       z <- z + 1
     }
   }
-  names(result)[5] <- paste("p.adj",padj,sep=".")
-  print(cbind(result[,1:2],round(result[,3:5],digits=4),sig=result[,6],round(result[,7:8],digits=4)))
+  names(result[[1]])[6] <- paste("padj",padj,sep=".")
+  names(result[[2]])[6] <- paste("padj",padj,sep=".")
+  if (padj!="none") {
+    print(cbind(result[[1]][,1:2],round(result[[1]][,3:6],digits=4),sig=result[[1]][,7],round(result[[1]][,8:9],digits=4)))
+    cat("\n")
+    print(cbind(result[[2]][,1:2],round(result[[2]][,3:6],digits=4),sig=result[[2]][,7],round(result[[2]][,8:9],digits=4)))
+  } else {
+    print(cbind(result[[1]][,1:2],round(result[[1]][,3:5],digits=4),sig=result[[1]][,7],round(result[[1]][,8:9],digits=4)))
+    cat("\n")
+    print(cbind(result[[2]][,1:2],round(result[[2]][,3:5],digits=4),sig=result[[2]][,7],round(result[[2]][,8:9],digits=4)))
+  }
   invisible(result)
 }
 

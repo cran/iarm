@@ -19,8 +19,10 @@ The item target is the value of the person parameter where
 item information is maximized.
 }
 \examples{
+\dontrun{
  pc.mod <- PCM(desc2[, 5:14])
  item_target(pc.mod)
+}
 }
 \author{
 Marianne Mueller

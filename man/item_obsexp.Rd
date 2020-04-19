@@ -22,8 +22,10 @@ this comparison can indicate which items might be responsible.
 \examples{
 rm.mod <- RM(amts[,4:13])
 item_obsexp(rm.mod)
+\dontrun{
 pc.mod <- PCM(desc2[,5:14])
 item_obsexp(pc.mod)
+}
 }
 \author{
 Marianne Mueller

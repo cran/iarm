@@ -13,14 +13,18 @@ partgam_LD(dat.items, p.adj = c("BH", "holm", "hochberg", "hommel",
 \item{p.adj}{Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.}
 }
 \value{
-data frame with Gamma coefficients, standard errors, p values and confidence limits for every
+list of two data frames with Gamma coefficients, standard errors, p values, adjusted p values if an adjustment method has be chosen, and confidence limits for every
 pair of items.
 }
 \description{
 Rasch models assume locally independent items. There should be no substantial correlation left between two items
 once the underlying factor has been taken into account.
 Partial Gamma coefficients between pairs of items controlled for the rest score
-can be used to assess this requirement.
+can be used to assess this requirement. The rest score is calculated as the score without the second item.
+}
+\details{
+Because it matters which of the two items of a pair is subtracted from the total score to give the rest score, calculations are done for each pair in both ways. Results are
+stored in two different data frames.
 }
 \examples{
 partgam_LD(amts[,4:13])

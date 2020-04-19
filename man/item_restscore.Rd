@@ -20,6 +20,7 @@ a matrix containing:
 \item{expected}{expected gamma coefficients}
 \item{se}{standard errors}
 \item{pvalue}{p values (under normal distribution assumption)}
+\item{padj}{adjusted p values if selected}
 \item{sig}{significance stars: 0  " *** "  0.001  " ** "  0.01  " * "  0.05   " . "  0.1  " "  1}
 }
 \description{

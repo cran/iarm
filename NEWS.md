@@ -1,5 +1,16 @@
 # News for package 'iarm'
 
+## Changes in Version 0.4.1
+
+* Unadjusted and adjusted p values included in several functions.
+* Rest score calculation for LD detection in both possible ways. 
+* fixed a bug in item-restscore().
+* fixed a bug in ICCplot().
+
+## Changes in Version 0.4.0
+
+* added a plotting function for ICCs.
+
 ## Changes in Version 0.3.0
 
 * Correction method for multiple testing included.

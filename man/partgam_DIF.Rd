@@ -15,7 +15,7 @@ partgam_DIF(dat.items, dat.exo, p.adj = c("BH", "holm", "hochberg",
 \item{p.adj}{Correction method for multiple testing. The methods are "BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none". See \code{\link{p.adjust}}.}
 }
 \value{
-data frame with Gamma coefficients, standard errors, p values and confidence limits for every
+data frame with Gamma coefficients, standard errors, p values, adjusted p values if an adjustment method has be chosen,  and confidence limits for every
 pair of an item and an exogenous variable.
 }
 \description{

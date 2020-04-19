@@ -21,9 +21,12 @@ an object of class outfit containing:
 \item{outfit}{outfit statistics}
 \item{outfit.se}{standard errors of outfit statistics}
 \item{out.pvalue}{p values of outfit statistics}
+\item{out.pvalue.adj}{adjusted p values of outfit statistics if selected}
 \item{infit}{infit statistics}
 \item{infit.se}{standard errors of infit statistics}
 \item{in.pvalue}{p values of infit statistics}
+\item{in.pvalue.adj}{adjusted p values of infit statistics if selected}
+\item{padj}{adjustment method}
 }
 \description{
 To avoid bias observed item responses are compared to expected responses under

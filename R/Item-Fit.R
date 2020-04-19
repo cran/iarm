@@ -50,8 +50,10 @@ expvar <- function(data, coeff){
 #' @examples
 #' rm.mod <- RM(amts[,4:13])
 #' item_obsexp(rm.mod)
+#' \dontrun{
 #' pc.mod <- PCM(desc2[,5:14])
 #' item_obsexp(pc.mod)
+#' }
 item_obsexp <- function(object){
   if (!any("Rm"%in%class(object),class(object) =="pcmodel")) stop("object must be of class Rm or pcmodel!")
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
@@ -140,9 +142,12 @@ item_obsexp <- function(object){
 #' \item{outfit}{outfit statistics}
 #' \item{outfit.se}{standard errors of outfit statistics}
 #' \item{out.pvalue}{p values of outfit statistics}
+#' \item{out.pvalue.adj}{adjusted p values of outfit statistics if selected}
 #' \item{infit}{infit statistics}
 #' \item{infit.se}{standard errors of infit statistics}
 #' \item{in.pvalue}{p values of infit statistics}
+#' \item{in.pvalue.adj}{adjusted p values of infit statistics if selected}
+#' \item{padj}{adjustment method}
 #' @examples
 #' rm.mod <- RM(amts[,4:13])
 #' out_infit(rm.mod)
@@ -222,7 +227,8 @@ out_infit <- function(object, se=TRUE, p.adj= c("BH","holm", "hochberg", "hommel
     Outfit.se <- sqrt(colSums((nir/colSums(nir)^2) * VarZ))
     fit <- cbind(Outfit,Outfit.se)
     pwert <- function(x){ifelse(x[, 1] > 1, 2*(1 - pnorm((x[, 1] - 1)/x[, 2])), 2*(pnorm((x[, 1] - 1)/x[, 2])))}
-    out.pwert <- p.adjust(pwert(fit),method=padj, n= 2*k)
+    out.pwert <- pwert(fit)
+    out.pkorr <- p.adjust(out.pwert,method=padj, n= 2*k)
   }
   Wri <- VarX.R / matrix(rep(colSums(nir * VarX.R), m-1), ncol = k, byrow = T)
   Wvi <- Wri[rvstrich, ]
@@ -231,10 +237,12 @@ out_infit <- function(object, se=TRUE, p.adj= c("BH","holm", "hochberg", "hommel
     Infit.se <- sqrt(colSums(nir * Wri^2 * VarZ,na.rm = T))
     names(Infit)=colnames(X)
     fit <- cbind(Infit,Infit.se)
-    in.pwert <- p.adjust(pwert(fit),method=padj, n=2*k)
-    result <- list(Outfit=Outfit, Outfit.se=Outfit.se, out.pvalue=out.pwert, Infit=Infit, Infit.se=Infit.se, in.pvalue=in.pwert,padj)
-    names(result)[3] <- paste("pvalue",padj,sep=".")
-    names(result)[6] <- paste("pvalue",padj,sep=".")
+    in.pwert <- pwert(fit)
+    in.pkorr <- p.adjust(in.pwert,method=padj, n=2*k)
+    result <- list(Outfit=Outfit, Outfit.se=Outfit.se, out.pvalue=out.pwert, out.pkorr=out.pkorr,Infit=Infit, Infit.se=Infit.se, in.pvalue=in.pwert,in.pkorr=in.pkorr, adjustment=padj)
+    names(result)[4] <- paste("out.pvalue",padj,sep=".")
+    names(result)[8] <- paste("in.pvalue",padj,sep=".")
+    if (padj=="none") result <- result[-c(4,8)]
   } else {
     result <- list(Outfit=Outfit, Infit=Infit)
   }
@@ -252,12 +260,22 @@ print.outfit <- function(x, ...){
     cat("\n")
   } else {
     symp <- function(x){symnum(x,cutpoints=c(0,0.001,0.01,0.05,0.1,1),symbols=c("***   "," **  "," *   "," .   ","    "))}
-    tab2 <- noquote(cbind(Outfit=round(x[[1]],digits=3),se=round(x[[2]],digits=3), pvalue=round(x[[3]],digits=3),sig=symp(x[[3]]),
-                                 Infit=round(x[[4]],digits=3),se=round(x[[5]],digits=3),pvalue=round(x[[6]],digits=3) ,sig=symp(x[[6]])))
-    cat("\n")
-    print(tab2)
-    cat("\n")
-    cat("P value adjustment:", x[[7]])
+    if(length(x)==7){
+      tab2 <- noquote(cbind(Outfit=round(x[[1]],digits=3),se=round(x[[2]],digits=3), pvalue=round(x[[3]],digits=3) ,sig=symp(x[[3]]),
+                            Infit=round(x[[4]],digits=3),se=round(x[[5]],digits=3),pvalue=round(x[[6]],digits=3),sig=symp(x[[6]])))
+      cat("\n")
+      print(tab2)
+      cat("\n")
+      cat("P value adjustment:", x[[7]])
+    } else {
+      tab2 <- noquote(cbind(Outfit=round(x[[1]],digits=3),se=round(x[[2]],digits=3), pvalue=round(x[[3]],digits=3), padj=round(x[[4]],digits=3) ,sig=symp(x[[4]]),
+                            Infit=round(x[[5]],digits=3),se=round(x[[6]],digits=3),pvalue=round(x[[7]],digits=3), padj=round(x[[8]],digits=3),sig=symp(x[[8]])))
+      cat("\n")
+      print(tab2)
+      cat("\n")
+      cat("P value adjustment:", x[[9]])
+    }
+
   }
 }
 
@@ -396,8 +414,9 @@ boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonf
   }
   cat("\n \n")
   pvalue <- apply(rbind(outin,Fr0),2,function(x){condp(x[-(B+1)],x[B+1])})
-  pvalue <- p.adjust(pvalue,method=padj, n= 2*k)
-  result <- cbind(Outfit=Fr1[[1]],pvalue=pvalue[1:k], Infit=Fr1[[4]],pvalue=pvalue[(k+1):(2*k)])
+  pkorr <- p.adjust(pvalue,method=padj, n= 2*k)
+  result <- cbind(Outfit=Fr1[[1]],out.pvalue=pvalue[1:k], out.pkorr=pkorr[1:k],Infit=Fr1[[4]],in.pvalue=pvalue[(k+1):(2*k)], in.pkorr=pkorr[(k+1):(2*k)])
+  if (padj=="none") result <- result[,-c(3,6)]
   result <- list(result,padj)
   names(result)[2] <- "adjust"
   class(result) <- "bootfit"
@@ -410,8 +429,12 @@ boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonf
 #' @export
 print.bootfit <- function(x,...){
   symp <- function(x){symnum(x,cutpoints=c(0,0.001,0.01,0.05,0.1,1),symbols=c("***   "," **  "," *   "," .   ","    "))}
-  tab2 <- noquote(cbind(Outfit=round(x[[1]][,1],digits=3), pvalue=round(x[[1]][,2],digits=3),sig=symp(x[[1]][,2]),
-                        Infit=round(x[[1]][,3],digits=3),pvalue=round(x [[1]][,4],digits=3) ,sig=symp(x[[1]][,4])))
+  if (x[[2]]!="none")
+    tab2 <- noquote(cbind(Outfit=round(x[[1]][,1],digits=3), pvalue=round(x[[1]][,2],digits=3), padj=round(x[[1]][,3],digits=3), sig=symp(x[[1]][,3]),
+                        Infit=round(x[[1]][,4],digits=3),pvalue=round(x [[1]][,5],digits=3), padj=round(x[[1]][,6],digits=3), sig=symp(x[[1]][,6])))
+  else
+    tab2 <- noquote(cbind(Outfit=round(x[[1]][,1],digits=3), pvalue=round(x[[1]][,2],digits=3),sig=symp(x[[1]][,2]),
+                          Infit=round(x[[1]][,3],digits=3),pvalue=round(x [[1]][,4],digits=3) ,sig=symp(x[[1]][,4])))
   cat("\n")
   print(tab2)
   cat("\n")
@@ -488,6 +511,7 @@ pscore_poly  <- function(i,x,r,coeff){
 #' \item{expected}{expected gamma coefficients}
 #' \item{se}{standard errors}
 #' \item{pvalue}{p values (under normal distribution assumption)}
+#' \item{padj}{adjusted p values if selected}
 #' \item{sig}{significance stars: 0  " *** "  0.001  " ** "  0.01  " * "  0.05   " . "  0.1  " "  1}
 #' @references Kreiner, S. (2011). A note on item-restscore association in Rasch models.
 #' \emph{Applied Psychological Measurement}, 35, 557-561.
@@ -556,11 +580,12 @@ item_restscore <- function(object, p.adj= c("BH","holm", "hochberg", "hommel", "
   }
   expected <- sapply(npmat, function(x){GKgamma(x)[[1]]})
   pvalue <- ifelse((mm[, 1] - expected) > 0, 2*(1 - pnorm((mm[, 1] - expected)/mm[, 2])), 2*(pnorm((mm[, 1] - expected)/mm[, 2])))
-
-  mm <- cbind(observed = mm[, 1], expected, se = mm[, 2], round(p.adjust(pvalue,method=padj, n=k),digits=4))
-  symp <- symnum(pvalue, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols=c("*** ", "** ", "* ", "." , " "))
+  pkorr <- p.adjust(pvalue,method=padj, n=k)
+  mm <- cbind(observed = mm[, 1], expected, se = mm[, 2], pvalue=round(pvalue, digits=4), round(pkorr, digits=4))
+  symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols=c("*** ", "** ", "* ", "." , " "))
   mm <- noquote(cbind(format(mm, digits = 3), sig = symp))
-  colnames(mm)[4] <- paste("pvalue",padj,sep=".")
+  if (padj=="none") mm <- mm[,-5]
+    else colnames(mm)[5] <- paste("padj",padj,sep=".")
   cat("\n")
   mm
 }

@@ -20,8 +20,10 @@ W_thresh <- function(x){
 #' @importFrom stats optimize
 #' @export
 #' @examples
+#' \dontrun{
 #'  pc.mod <- PCM(desc2[, 5:14])
 #'  item_target(pc.mod)
+#' }
 item_target <- function(obj){
   if(class(obj)[1]=="pcmodel") obj$model <- "pcmodel"
   if(!(obj$model%in%c("pcmodel","PCM"))) stop("Item targets are computed only for polytomous models estimated with pcmodel or PCM")
