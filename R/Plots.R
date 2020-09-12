@@ -30,7 +30,7 @@
 #' to evaluate differential item function. Options are "yes" or "no".
 #' @param difvar Chooses the variable which will be used to evaluate differential item functioning. Only
 #' necessary when dif="yes".
-#' @param diflabels A character vector indicating the labels to values of the variable choosen to evaluate differential item functioning.
+#' @param diflabels A character vector indicating the labels to values of the variable chosen to evaluate differential item functioning.
 #' Only necessary when dif="yes".
 #' @param difstats Displays the partial gamma coefficient to indicate the magnitude of differential item
 #' functioning. Options are "yes" or "no". Only necessary when dif="yes".
@@ -129,7 +129,11 @@ ICCplot <- function(data, itemnumber, pallete='Paired', xticks=1.0, yticks=0.5,
     } #Calculates the number of categories
 
     ttsc <- rowSums(adat, na.rm=TRUE)
-    rtsc <- rowSums(adat[,-itmc], na.rm=TRUE)
+    if (ncol(adat)>2) {
+      rtsc <- rowSums(adat[,-itmc], na.rm=TRUE)
+    } else {
+      rtsc <- adat[,-itmc]
+    }
     adat <- cbind(adat, ttsc, rtsc)
     adat <- adat[order(ttsc),]
     itms <- ncol(adat)-2
@@ -231,7 +235,9 @@ ICCplot <- function(data, itemnumber, pallete='Paired', xticks=1.0, yticks=0.5,
         classbreak=c(NA,NA)
       }
 
-      myICCplot <- ggplot(cend, aes(x=cend$theta, y=cend$score, col=as.factor(type))) + #The graph itself
+      theta <- NULL
+      score <- NULL
+      myICCplot <- ggplot(cend, aes(x=theta, y=score, col=as.factor(type))) + #The graph itself
         ggtitle(title) +
         theme_light() +
         theme(plot.title = element_text(hjust = 0.5), legend.position=icclabels,
@@ -295,7 +301,7 @@ ICCplot <- function(data, itemnumber, pallete='Paired', xticks=1.0, yticks=0.5,
       }
       else {classbreak=c(NA,NA)}
 
-      myICCplot <- ggplot(cend, aes(x=cend$theta, y=cend$score, col=as.factor(type))) +
+      myICCplot <- ggplot(cend, aes(x=theta, y=score, col=as.factor(type))) +
         ggtitle(title) + #Choose title
         theme_light() +
         theme(plot.title = element_text(hjust = 0.5), legend.position=icclabels,
@@ -400,7 +406,7 @@ ICCplot <- function(data, itemnumber, pallete='Paired', xticks=1.0, yticks=0.5,
       }
       else {classbreak=c(NA,NA)}
 
-      myICCplot <- ggplot(cend, aes(x=cend$theta, y=cend$score, col=as.factor(type))) +
+      myICCplot <- ggplot(cend, aes(x=theta, y=score, col=as.factor(type))) +
         ggtitle(title) + #Choose title
         theme_light() +
         theme(plot.title = element_text(hjust = 0.5), legend.position=icclabels,
@@ -503,7 +509,7 @@ ICCplot <- function(data, itemnumber, pallete='Paired', xticks=1.0, yticks=0.5,
       }
       else {classbreak=c(NA,NA)}
 
-      myICCplot <- ggplot(cend, aes(x=cend$theta, y=cend$score, col=as.factor(type))) +
+      myICCplot <- ggplot(cend, aes(x=theta, y=score, col=as.factor(type))) +
         ggtitle(title) + #Choose title
         theme_light() +
         theme(plot.title = element_text(hjust = 0.5), legend.position=icclabels,

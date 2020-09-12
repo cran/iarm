@@ -4,7 +4,8 @@
 \name{desc2}
 \alias{desc2}
 \title{Depression Screening DESC-II}
-\format{A data frame with 799 rows and 14 variables.
+\format{
+A data frame with 799 rows and 14 variables.
 \describe{
   \item{code}{id number of the patient}
   \item{group}{a factor with levels  psychiatry, otolaryngology, cardiology, neurology  for the indication group  of the patient.}
@@ -20,7 +21,8 @@
     \item{DESC_2_8}{discouraged}
     \item{DESC_2_9}{withdrawal}
     \item{DESC_2_10}{thinking of taking one's life}
-}}
+}
+}
 \description{
 A dataset containing the responses of 799 patients (indication group psychiatry, otolaryngology, cardiology, neurology)
 to the short form DESC-II with 10 items.
@@ -34,8 +36,5 @@ str(desc2)
 Forkmann et al. (2009) Development and validation of the Rasch-based Depression Screening (DESC) using
 Rasch analysis and structural equation modelling.
 \emph{J Behav Ther Exp Psychiatry}, 40(3): 468-78.
-}
-\seealso{
-\url{http://psychometrikon.de/inhalt/suchen/test.php?id=000000000000000000000000000003}
 }
 \keyword{datasets}

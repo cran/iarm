@@ -77,14 +77,14 @@ partgam_DIF <- function(dat.items, dat.exo, p.adj= c("BH","holm", "hochberg", "h
   if (is.null(names(dat.items))) names(dat.items) <- paste("I",1:dim(dat.items)[2],sep="")
   padj <- match.arg(p.adj)
   score <- apply(dat.items,1,sum,na.rm=T)
-  fz <- cut(score,unique(quantile(score,0:10/10)),include.lowest=T)
+  ok <- complete.cases(cbind(dat.items,dat.exo))
   k <- dim(dat.items)[2]
   l <- dim(dat.exo)[2]
   result <- data.frame(Item=character(), Var=character(), gamma=double(),se=double(),pvalue=double(),pkorr=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
   z <- 1
   for (i in 1:k){
     for (j in 1:l){
-      mm <- partgam(dat.items[, i], dat.exo[, j], fz)
+      mm <- partgam(dat.items[ok, i], dat.exo[ok, j], score[ok])
       pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
       pkorr <- p.adjust(pvalue,method=padj, n= l*k)
       symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
@@ -112,7 +112,6 @@ partgam_DIF <- function(dat.items, dat.exo, p.adj= c("BH","holm", "hochberg", "h
 #' stored in two different data frames.
 #' @return list of two data frames with Gamma coefficients, standard errors, p values, adjusted p values if an adjustment method has be chosen, and confidence limits for every
 #' pair of items.
-#' @importFrom stats quantile
 #' @export
 #' @author Marianne Mueller
 #' @seealso  \code{\link{partgam_DIF}}
@@ -127,28 +126,20 @@ partgam_LD <- function(dat.items, p.adj= c("BH","holm", "hochberg", "hommel", "b
   k <- dim(dat.items)[2]
   result <- data.frame(Item1=character(),Item2=character(), gamma=double(),se=double(),pvalue=double(),pkorr=double(),sig=character(),lower=double(),upper=double(),stringsAsFactors=FALSE)
   result <- list(result,result)
-  z <- 1
-  for (i in 1:(k-1)){
-    for (j in (i+1):k){
-      rest <- score[ok] - dat.items[ok,j]
-      fac.z <- cut(rest,unique(quantile(rest,0:10/10)),include.lowest=T)
-      mm <- partgam(dat.items[ok,i], dat.items[ok,j],fac.z)
-      pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
-      pkorr <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
-      symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
-      result[[1]][z,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
-      rest <- score[ok] - dat.items[ok,i]
-      fac.z <- cut(rest,unique(quantile(rest,0:10/10)),include.lowest=T)
-      mm <- partgam(dat.items[ok,i], dat.items[ok,j],fac.z)
-      pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
-      pkorr <- p.adjust(pvalue,method=padj, n= (k*(k-1))/2)
-      symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
-      result[[2]][z,] <- c(names(dat.items)[j],names(dat.items)[i],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
-      z <- z + 1
+  for (i in 1:k){
+    for (j in 1:k){
+      if (i!=j){
+        rest <- score[ok] - dat.items[ok,j]
+        mm <- partgam(dat.items[ok,i], dat.items[ok,j],rest)
+        pvalue <- ifelse(mm[dim(mm)[1],1] > 0, 2*(1 - pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])), 2*(pnorm(mm[dim(mm)[1],1]/mm[dim(mm)[1],2])))
+        pkorr <- p.adjust(pvalue,method=padj, n= (k*(k-1)))
+        symp <- symnum(pkorr, cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1), symbols = c(" ***", " **", " *", " .", " "))
+        if (i < j) result[[1]][nrow(result[[1]])+1,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
+          else result[[2]][nrow(result[[2]])+1,] <- c(names(dat.items)[i],names(dat.items)[j],mm[dim(mm)[1],1:2],pvalue,pkorr,symp,mm[dim(mm)[1],3:4])
+      }
     }
   }
-  names(result[[1]])[6] <- paste("padj",padj,sep=".")
-  names(result[[2]])[6] <- paste("padj",padj,sep=".")
+  names(result[[1]])[6] <- names(result[[2]])[6] <- paste("padj",padj,sep=".")
   if (padj!="none") {
     print(cbind(result[[1]][,1:2],round(result[[1]][,3:6],digits=4),sig=result[[1]][,7],round(result[[1]][,8:9],digits=4)))
     cat("\n")

@@ -4,13 +4,28 @@
 \alias{ICCplot}
 \title{Item Characteristic Curves}
 \usage{
-ICCplot(data, itemnumber, pallete = "Paired", xticks = 1,
-  yticks = 0.5, thetain = -6, thetaend = 6, method = "score",
-  grid = "yes", cinumber = 6, itemdescrip = "", axis.rumm = "yes",
-  dif = "no", difvar = NA, diflabels = c("Group1", "Group 2",
-  "Group 3", "Group 4", "Group5"), difstats = "yes",
-  title = "Item Characteristic Curve", icclabel = "yes",
-  xaxistitle = "Theta", yaxistitle = "Item Score")
+ICCplot(
+  data,
+  itemnumber,
+  pallete = "Paired",
+  xticks = 1,
+  yticks = 0.5,
+  thetain = -6,
+  thetaend = 6,
+  method = "score",
+  grid = "yes",
+  cinumber = 6,
+  itemdescrip = "",
+  axis.rumm = "yes",
+  dif = "no",
+  difvar = NA,
+  diflabels = c("Group1", "Group 2", "Group 3", "Group 4", "Group5"),
+  difstats = "yes",
+  title = "Item Characteristic Curve",
+  icclabel = "yes",
+  xaxistitle = "Theta",
+  yaxistitle = "Item Score"
+)
 }
 \arguments{
 \item{data}{An object of class "data.frame" containing the items (include all items present in the model).
@@ -50,7 +65,7 @@ to evaluate differential item function. Options are "yes" or "no".}
 \item{difvar}{Chooses the variable which will be used to evaluate differential item functioning. Only
 necessary when dif="yes".}
 
-\item{diflabels}{A character vector indicating the labels to values of the variable choosen to evaluate differential item functioning.
+\item{diflabels}{A character vector indicating the labels to values of the variable chosen to evaluate differential item functioning.
 Only necessary when dif="yes".}
 
 \item{difstats}{Displays the partial gamma coefficient to indicate the magnitude of differential item

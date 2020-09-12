@@ -58,7 +58,6 @@ NULL
 #' @references Forkmann et al. (2009) Development and validation of the Rasch-based Depression Screening (DESC) using
 #' Rasch analysis and structural equation modelling.
 #' \emph{J Behav Ther Exp Psychiatry}, 40(3): 468-78.
-#' @seealso \url{http://psychometrikon.de/inhalt/suchen/test.php?id=000000000000000000000000000003}
 #' @name desc2
 #' @examples data(desc2)
 #' @examples str(desc2)

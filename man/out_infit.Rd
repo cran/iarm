@@ -4,8 +4,11 @@
 \alias{out_infit}
 \title{Item Outfit and Infit Statistics}
 \usage{
-out_infit(object, se = TRUE, p.adj = c("BH", "holm", "hochberg",
-  "hommel", "bonferroni", "BY", "none"))
+out_infit(
+  object,
+  se = TRUE,
+  p.adj = c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY", "none")
+)
 }
 \arguments{
 \item{object}{An object of class "Rm", a fitted Rasch model or partial

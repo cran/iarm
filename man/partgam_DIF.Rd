@@ -4,8 +4,11 @@
 \alias{partgam_DIF}
 \title{Partial Gamma to detect Differential Item Functioning (DIF)}
 \usage{
-partgam_DIF(dat.items, dat.exo, p.adj = c("BH", "holm", "hochberg",
-  "hommel", "bonferroni", "BY", "none"))
+partgam_DIF(
+  dat.items,
+  dat.exo,
+  p.adj = c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY", "none")
+)
 }
 \arguments{
 \item{dat.items}{A data frame with the responses to the items.}

@@ -4,7 +4,8 @@
 \name{amts}
 \alias{amts}
 \title{Abbreviated Mental Test Score (AMTS)}
-\format{A data frame with 197 rows and 13 variables.
+\format{
+A data frame with 197 rows and 13 variables.
 \describe{
   \item{id}{id number of the patient.}
   \item{agegrp}{a factor with levels 16-65, 66-75, 76-85, 86+ for the age  of the patient.}
@@ -19,7 +20,8 @@
    \item{firstww}{date of first world war, with 1 if correct and 0 otherwise.}
     \item{monarch}{name of monarch, with 1 if correct and 0 otherwise.}
     \item{countbac}{count backwards 20-1, with 1 if correct and 0 otherwise.}
-}}
+}
+}
 \description{
 A dataset containing the responses of 197 persons to the ten questions of the Abbreviated Mental Test Score (AMTS).
 The AMTS is used to identify patients with dementia.

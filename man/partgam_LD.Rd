@@ -4,8 +4,10 @@
 \alias{partgam_LD}
 \title{Partial Gamma to detect Local Dependence (LD)}
 \usage{
-partgam_LD(dat.items, p.adj = c("BH", "holm", "hochberg", "hommel",
-  "bonferroni", "BY", "none"))
+partgam_LD(
+  dat.items,
+  p.adj = c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY", "none")
+)
 }
 \arguments{
 \item{dat.items}{A data frame with the responses to the items.}

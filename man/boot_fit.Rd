@@ -4,8 +4,11 @@
 \alias{boot_fit}
 \title{Computes Bootstrapping P Values for Outfit and Infit Statistics}
 \usage{
-boot_fit(object, B, p.adj = c("BH", "holm", "hochberg", "hommel",
-  "bonferroni", "BY", "none"))
+boot_fit(
+  object,
+  B,
+  p.adj = c("BH", "holm", "hochberg", "hommel", "bonferroni", "BY", "none")
+)
 }
 \arguments{
 \item{object}{an object of class "Rm" (output of RM or PCM) or class "pcmodel"}

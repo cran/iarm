@@ -1,5 +1,12 @@
 # News for package 'iarm'
 
+## Changes in Version 0.4.2
+
+* partgam_LD and partgam_DIF now directly use scores or rest scores instead of categorized values.
+* fixed a bug in ICCplot. 
+* update of ICCplot for R 4.0.0 
+
+
 ## Changes in Version 0.4.1
 
 * Unadjusted and adjusted p values included in several functions.
