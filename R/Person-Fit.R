@@ -1,3 +1,89 @@
+persons_mle <- function (respm, thresh, model=c("RM","PCM"), theta = rep(0, dim(respm)[1]),
+                         type = c("MLE","WLE"), extreme=TRUE, maxit = 20, maxdelta = 3, tol = 1e-04, maxval = 9) {
+  # thresh Matrix mit  Schwellenwerten  oder betas
+  n <- dim(respm)[1]
+  k <- dim(respm)[2]
+  rv <- rowSums(respm, na.rm = TRUE)
+  mode <- match.arg(model)
+  typ <- match.arg(type)
+  cll.rasch <- function(theta){
+    ksi   <- exp(theta)
+    mm <- outer(ksi,1/exp(thresh))
+    mm[is.na(respm)] <- 0
+    dll <- rv - rowSums(mm/(1+mm))
+    d2ll <- - rowSums(mm/(1+mm)^2)
+    d3ll <- 0
+    if (typ=="WLE") {
+      d3ll <- - rowSums((mm*(1-mm))/(1+mm)^3)
+      if (extreme==FALSE){
+        d3ll[rv==0] <- 0
+        d3ll[rv==maxr] <- 0
+      }
+    }
+    list(dll=dll,d2ll=d2ll,d3ll=d3ll)
+  }
+  cll.pcm <- function(theta){
+    dlogki <-function(i) {
+      mmn <- exp(outer(theta,1:mi[i]) + matrix(psi.l[[i]],ncol=mi[i],nrow=n,byrow=T))
+      kd <- 1 + rowSums(mmn)
+      kd1 <- rowSums(matrix(1:mi[i],ncol=mi[i],nrow=n,byrow=T)*mmn)
+      kd2 <- rowSums(matrix((1:mi[i])^2,ncol=mi[i],nrow=n,byrow=T)*mmn)
+      kd3 <- rowSums(matrix((1:mi[i])^3,ncol=mi[i],nrow=n,byrow=T)*mmn)
+      cbind(dlli=kd1/kd, d2lli=kd2/kd -(kd1/kd)^2, d3lli=-kd3/kd + 3*kd2*kd1/(kd^2) -2*(kd1/kd)^3)
+    }
+    mm <- sapply(1:k,dlogki)
+    mm[is.na(rbind(respm,respm,respm))] <- 0
+    dll <- rv -rowSums(mm[1:n,])
+    d2ll <- -rowSums(mm[(n+1):(2*n),])
+    d3ll <- 0
+    if (typ=="WLE") {
+      d3ll <- rowSums(mm[(2*n+1):(3*n),])
+      if (extreme==FALSE){
+        d3ll[rv==0] <- 0
+        d3ll[rv==maxr] <- 0
+      }
+    }
+    list(dll=dll,d2ll=d2ll,d3ll=d3ll)
+  }
+  iter <- 1
+  conv <- 1
+  if (mode=="RM") {
+    maxr <- apply(respm,1,function(x) sum(!is.na(x)))
+    clog <- cll.rasch
+  }
+  if (mode=="PCM") {
+    thresh.l <- apply(thresh,1,function(x) as.vector(na.omit(x)), simplify=F)
+    psi.l <- lapply(thresh.l, function(x){(-1)*cumsum(x)})
+    mi <- sapply(psi.l, length)
+    m <- sum(mi)
+    maxr <- apply(respm,1,function(x) sum(mi[!is.na(x)]))
+    clog <- cll.pcm
+  }
+
+  while ((conv > tol) & (iter <= maxit)) {
+    theta0 <- theta
+    fn <- clog(theta)
+    delta <- -fn[[1]]/fn[[2]]
+    if (typ=="WLE") {
+      delta <- -fn[[1]]/fn[[2]] - fn[[3]]/(2 * fn[[2]]^2)
+    }
+    maxdelta <- maxdelta/1.05
+    delta <- ifelse(abs(delta) > maxdelta, sign(delta) * maxdelta, delta)
+    theta <- theta + delta
+    theta <- ifelse(abs(theta) > maxval, sign(theta) * maxval, theta)
+    conv <- max(abs(theta - theta0))
+    iter <- iter + 1
+  }
+  se <- sqrt(abs(-1/fn[[2]]))
+  se <- ifelse(abs(theta) == maxval, NA, se)
+  theta <- ifelse(theta == maxval, Inf, ifelse(theta == -maxval, -Inf, theta))
+  res <- structure(data.frame(est = theta, se = se), model = mode, type = typ)
+  return(res)
+}
+
+
+
+
 #' Person Estimates with MLE and WLE
 #'
 #' Computes Person estimates with maximum likelihood estimation (MLE) and  weighted likelihood estimation (WLE) for raw scores 0 to m.
@@ -7,7 +93,6 @@
 #' @param  properties If TRUE additional properties of the estimates are given (see below).
 #' @param allperson If TRUE person estimates (MLE and WLE) for all persons in the data set are delivered.
 #' @import eRm
-#' @importFrom PP PP_gpcm
 #' @importFrom psychotools personpar itempar
 #' @importFrom stats coef uniroot na.omit
 #' @export
@@ -45,7 +130,7 @@ person_estimates <- function(object, properties = F, allperson = F){
       respm <- rbind(rep(0, k), lower.tri(matrix(1, k, k)) + diag(k))
     } else {
       if (object$model == "PCM"){
-        coeff <- thresholds(object)[[3]][[1]][, -1]- mean(thresholds(object)[[3]][[1]][, 1])
+        coeff <- thresholds(object)[[3]][[1]][, -1]- mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
       } else {
         coeff <- coef(threshpar(object),type="matrix")
       }
@@ -56,8 +141,17 @@ person_estimates <- function(object, properties = F, allperson = F){
       respm[, 1] <- c(0:mi[1], rep(mi[1], nrow(respm) - mi[1] - 1))
       for (i in 2:k) respm[, i] <- c(rep(0, cumsum(mi)[i - 1] + 1), 1:mi[i], rep(mi[i], nrow(respm) - cumsum(mi)[i]  -1))
     }
-    invisible(capture.output(mm <- cbind(0:m, PP_gpcm(respm, t(coeff), slopes = rep(1, k), type = "mle" )[[1]][[1]][, 1],
-                PP_gpcm(respm,t(coeff),slopes=rep(1,k),type="wle")[[1]][[1]][,1])))
+    if (object$model=="pcmodel"){
+      mode <- "PCM"
+    } else {
+      if (object$model=="raschmodel"){
+        mode  <- "RM"
+      } else {
+        mode <- object$model
+      }
+    }
+    mm <- cbind(0:m, persons_mle(respm, coeff, model=mode, type = "MLE" )[, 1],
+                persons_mle(respm, coeff, model=mode, type="WLE")[,1])
     rownames(mm) <- rep(" ", m + 1)
     colnames(mm) <- c("Raw Score", "MLE", "WLE")
     if (allperson){
@@ -131,13 +225,12 @@ test_prop <- function(object){
     if (object$model == "PCM"){
       k <- dim(object$X)[2]
       mi <- apply(object$X, 2, max, na.rm = TRUE)
-      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
+      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
       koeff <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
     } else {
       k <- dim(object$data)[2]
       mi <- apply(object$data, 2, max, na.rm = TRUE)
-      thresh1 <- coef(threshpar(object),type="matrix")
-      koeff <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
+      koeff <- lapply(threshpar(object), cumsum)
     }
   }
   m <- sum(mi)

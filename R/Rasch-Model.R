@@ -30,8 +30,8 @@ item_target <- function(obj){
   if(obj$model=="pcmodel")
     betasum.l <- lapply(threshpar(obj), cumsum)
   else {
-    thresh1 <- thresholds(obj)[[3]][[1]][, -1] - mean(thresholds(obj)[[3]][[1]][, 1])
-    betasum.l <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+    thresh1 <- thresholds(obj)[[3]][[1]][, -1] - mean(thresholds(obj)[[3]][[1]][, -1], na.rm=T)
+    betasum.l <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
   }
   var.X <- function(x) {
     function(theta) {

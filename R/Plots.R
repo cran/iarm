@@ -44,6 +44,7 @@
 #' @import ggplot2
 #' @importFrom gridExtra grid.arrange
 #' @importFrom stats aggregate predict
+#' @importFrom utils capture.output
 #' @export
 #' @author Pedro Henrique Ribeiro Santiago \email{pedro.ribeirosantiago@@adelaide.edu.au}, Marianne Mueller
 #' @examples

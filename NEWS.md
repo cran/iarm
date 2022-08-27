@@ -1,5 +1,11 @@
 # News for package 'iarm'
 
+## Changes in Version 0.4.3
+
+* Improved MLE and WLE estimation in person_estimate  for situations with unequal numbers of item response categories.
+* fixed a bug in several functions dealing with unequal numbers of item response categories. 
+
+
 ## Changes in Version 0.4.2
 
 * partgam_LD and partgam_DIF now directly use scores or rest scores instead of categorized values.

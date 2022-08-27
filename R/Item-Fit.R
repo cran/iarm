@@ -77,8 +77,8 @@ item_obsexp <- function(object){
       X <- object$X
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
-      coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
+      coeff <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
     } else {
       if (sum(is.na(object$data)) > 0){
         message("Model was refitted with only complete cases")
@@ -88,8 +88,7 @@ item_obsexp <- function(object){
       X <- object$data
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- coef(threshpar(object),type="matrix")
-      coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      coeff <- lapply(threshpar(object), cumsum)
     }
   }
   m <- sum(mi)
@@ -177,8 +176,8 @@ out_infit <- function(object, se=TRUE, p.adj= c("BH","holm", "hochberg", "hommel
       rv <- rowSums(X, na.rm = TRUE)
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
-      koeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
+      koeff <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
     } else {
       if (sum(is.na(object$data)) > 0){
         message("Model was refitted with only complete cases")
@@ -189,8 +188,7 @@ out_infit <- function(object, se=TRUE, p.adj= c("BH","holm", "hochberg", "hommel
       rv <- rowSums(X, na.rm = TRUE)
       k <- dim(X)[2]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- coef(threshpar(object),type="matrix")
-      koeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      koeff <- lapply(threshpar(object), cumsum)
     }
   }
   m <- sum(mi)
@@ -338,6 +336,8 @@ outin_boot <- function(data, model= c("RM","PCM","pcmodel")){
   c((Outfit-1)/Outfit.se, (Infit-1)/Infit.se)
 }
 
+
+
 #' Computes Bootstrapping P Values for Outfit and Infit Statistics
 #'@param object  an object of class "Rm" (output of RM or PCM) or class "pcmodel"
 #'@param B Number of replications.
@@ -346,7 +346,6 @@ outin_boot <- function(data, model= c("RM","PCM","pcmodel")){
 #'@import eRm
 #'@importFrom psychotools raschmodel threshpar
 #'@importFrom stats p.adjust
-#'@importFrom utils capture.output
 #'@return object of class bootfit with outfit and infit statistics and corresponding p values.
 boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonferroni", "BY", "none")){
   if(class(object)[1]=="pcmodel") object$model <- "pcmodel"
@@ -369,10 +368,9 @@ boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonf
       }
       X <- object$X
       k <- dim(X)[2]
-      koeff <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
-      koeff2 <- vector("list",k)
-      for (i in 1:k) koeff2[[i]] <- koeff[i,]
-    } else {
+      koeff <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
+      koeff2 <- apply(koeff,1,function(x) as.vector(na.omit(x)), simplify=F)
+      } else {
       if (sum(is.na(object$data)) > 0){
         message("Model was refitted with only complete cases")
         dat.items <- na.omit(object$data)
@@ -386,7 +384,9 @@ boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonf
   }
   Fr1 <- out_infit(object)
   Fr0 <- c((Fr1$Outfit-1)/Fr1$Outfit.se, (Fr1$Infit-1)/Fr1$Infit.se)
-  invisible(capture.output(persons <- PP_gpcm(X,t(koeff),slopes=rep(1,k),type="wle")[[1]][[1]][,1]))
+  # invisible(capture.output(persons <- PP_gpcm(X,t(koeff),slopes=rep(1,k),type="wle")[[1]][[1]][,1]))
+  if (object$model=="pcmodel") mode <- "PCM" else mode <- object$model
+  persons <- persons_mle(X,koeff,model=mode,type="WLE")[,1]
   outin <- matrix(rep(NA,2*k*B),ncol=2*k)
   condp <- function(x,x0){
     if (x0 <= 0) p <- sum(x <= x0)/sum(x <= 0)
@@ -415,7 +415,7 @@ boot_fit <- function(object,B, p.adj= c("BH","holm", "hochberg", "hommel", "bonf
   cat("\n \n")
   pvalue <- apply(rbind(outin,Fr0),2,function(x){condp(x[-(B+1)],x[B+1])})
   pkorr <- p.adjust(pvalue,method=padj, n= 2*k)
-  result <- cbind(Outfit=Fr1[[1]],out.pvalue=pvalue[1:k], out.pkorr=pkorr[1:k],Infit=Fr1[[4]],in.pvalue=pvalue[(k+1):(2*k)], in.pkorr=pkorr[(k+1):(2*k)])
+  result <- cbind(Outfit=Fr1[[1]],out.pvalue=pvalue[1:k], out.pkorr=pkorr[1:k],Infit=Fr1[[5]],in.pvalue=pvalue[(k+1):(2*k)], in.pkorr=pkorr[(k+1):(2*k)])
   if (padj=="none") result <- result[,-c(3,6)]
   result <- list(result,padj)
   names(result)[2] <- "adjust"
@@ -443,7 +443,7 @@ print.bootfit <- function(x,...){
 
 
 # Original version William Revelle
-sim.poly <- function (persons, thresh) {
+sim.poly <- function (persons, thresh.l) {
   if (length(persons) == 1) {
     faehig <- rnorm(persons)
     n <- persons
@@ -451,13 +451,13 @@ sim.poly <- function (persons, thresh) {
     faehig <- persons
     n <- length(persons)
   }
-  mi <- sapply(thresh,length)
+  mi <- sapply(thresh.l,length)
   k <- length(mi)
   mtvec <- sequence(mi)
   aa <- t(as.data.frame(lapply(split(mtvec,rep(1:k,mi)),function(ii){c(ii,rep(NA,length.out=max(mi)-length(ii)))})))
   aa <- cbind(rep(0,k),aa)
 
-  psi.l=lapply(thresh, function(x){(-1)*cumsum(x)})
+  psi.l=lapply(thresh.l, function(x){(-1)*cumsum(x)})
   bb=t(as.data.frame(lapply(psi.l,function(ii){c(ii,rep(NA,length.out=max(mi)-length(ii)))})))
   bb=cbind(rep(0,k),bb)
 
@@ -545,8 +545,8 @@ item_restscore <- function(object, p.adj= c("BH","holm", "hochberg", "hommel", "
       k <- dim(X)[2]
       n <- dim(X)[1]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, 1])
-      coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      thresh1 <- thresholds(object)[[3]][[1]][, -1] - mean(thresholds(object)[[3]][[1]][, -1], na.rm=T)
+      coeff <- lapply(as.list(as.data.frame(t(thresh1))), function(x) cumsum(na.omit(x)))
     } else {
       if (sum(is.na(object$data)) > 0){
         message("Model was refitted with only complete cases")
@@ -557,8 +557,7 @@ item_restscore <- function(object, p.adj= c("BH","holm", "hochberg", "hommel", "
       k <- dim(X)[2]
       n <- dim(X)[1]
       mi <- apply(X, 2, max, na.rm = TRUE)
-      thresh1 <- coef(threshpar(object),type="matrix")
-      coeff <- lapply(as.list(as.data.frame(t(thresh1))), cumsum)
+      coeff <- lapply(threshpar(object), cumsum)
     }
   }
   m <- sum(mi)
